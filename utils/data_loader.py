@@ -4,17 +4,14 @@ import glob
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms, utils
 
 class RetinaDataSet(Dataset):
 
-    def __init__(self, root=None, train=True, train_size=1.0,
-                 transform=None, shuffle=True, random_state=None):
+    def __init__(self, root=None, train=True, transform=None, shuffle=True, random_state=None):
         self.train = train
 
-        if train_size <= 0 or train_size > 1:
-            raise ValueError('train_size can only be in the interval (0,1]')
         if not root:
             self.root = '../data/'
         else:
@@ -28,15 +25,11 @@ class RetinaDataSet(Dataset):
             if shuffle:
                 self.image_paths, self.target_paths = self._shuffle_paths(
                     self.image_paths, self.target_paths, random_state=random_state)
-
-            self.image_paths = self.image_paths[:int(train_size * len(self.target_paths))]
-            self.target_paths = self.target_paths[:int(train_size * len(self.target_paths))]
         else:
             self.image_paths = sorted(glob.glob(os.path.join(self.root,
                                                              'test/images/*_test.tif')))
             if shuffle:
                 self.image_paths = self._shuffle_paths(self.image_paths, random_state=random_state)
-            
 
         if not transform:
             self.transform = self._default_tranform
@@ -86,17 +79,41 @@ class RetinaDataSet(Dataset):
         return list(image_paths), list(target_paths)
 
 
+class TrainValidationSplit:
 
+    def __init__(self, train_size=0.6):
+        if train_size >= 1.0 or train_size <= 0:
+            raise ValueError('train_size can only be a float in interval (0, 1)')
+        self.train_size = train_size
+
+    def __call__(self, dataset):
+        total_len = len(dataset)
+        train_len = int(self.train_size * total_len )
+        valid_len = total_len - train_len
+        train_dataset, valid_dataset = random_split(dataset, [train_len, valid_len])
+        return train_dataset, valid_dataset
 
 
 if __name__ == '__main__':
-    r = RetinaDataSet(train_size=0.5, train=True, shuffle=False,
+    r = RetinaDataSet(train=True, shuffle=False,
                       random_state=np.random.RandomState(
         123))
     print(r.image_paths)
     print(len(r))
-    image, target = r[0]
-    print(image.size(), target.size())
+    # image, target = r[0]
+    # print(image.size(), target.size())
+    # to_PIL = transforms.ToPILImage()
+    # fig = plt.figure()
+    # fig.add_subplot(1, 2, 1)
+    # plt.imshow(to_PIL(image))
+    # fig.add_subplot(1, 2, 2)
+    # plt.imshow(to_PIL(target))
+    # plt.show()
+
+    Spliter = TrainValidationSplit(train_size=0.6)
+    train_dataset, valid_dataset = Spliter(r)
+    print(len(train_dataset), len(valid_dataset))
+    image, target = valid_dataset[0]
     to_PIL = transforms.ToPILImage()
     fig = plt.figure()
     fig.add_subplot(1, 2, 1)
@@ -104,4 +121,3 @@ if __name__ == '__main__':
     fig.add_subplot(1, 2, 2)
     plt.imshow(to_PIL(target))
     plt.show()
-    # print(r.target_paths)
