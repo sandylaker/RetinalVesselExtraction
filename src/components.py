@@ -19,6 +19,16 @@ class TwoLayerConv(nn.Module):
         return x
 
 
+class InputConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(InputConv, self).__init__()
+        self.conv = TwoLayerConv(in_channels, out_channels)
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+
 class DownLayer(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DownLayer, self).__init__()
@@ -43,6 +53,7 @@ class UpLayer(nn.Module):
         x = torch.cat([x2, x1], dim=1)
         x = self.conv(x)
         return x
+
 
 class OutLayer(nn.Module):
     def __init__(self, in_channels, out_channels):
