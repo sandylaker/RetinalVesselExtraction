@@ -14,8 +14,11 @@ class BCEWithLogitsLoss2d(nn.Module):
         :param pos_weight: see docs of nn.BCEWithLogitsLoss on pytorch website
         """
         super(BCEWithLogitsLoss2d, self).__init__()
-        weight = weight.view(-1)
-        self.loss = nn.BCEWithLogitsLoss(weight, reduction=reduction, pos_weight=pos_weight)
+        if weight is None:
+            self.weight = None
+        else:
+            self.weight = weight.view(-1)
+        self.loss = nn.BCEWithLogitsLoss(self.weight, reduction=reduction, pos_weight=pos_weight)
 
     def forward(self, logits, targets):
         """
@@ -37,17 +40,21 @@ class SoftDiceLoss(nn.Module):
         self.weight = weight
 
     def forward(self, logits, targets):
-        proba = F.sigmoid(logits)
+        proba = torch.sigmoid(logits)
         num = targets.size(0)
         if not self.weight:
-            self.weight = torch.ones_like(targets)
-        weight2 = self.weight * self.weight
+            weight = torch.ones_like(targets)
+        else:
+            weight = self.weight
+        targets = weight * targets
+        proba = weight * proba
         proba = proba.view(num, -1)
         targets = targets.view(num, -1)
+
         intersection = proba * targets
-        # use 1 as smooth factor for back probagation
-        score = 2. * ((weight2 * intersection).sum(1) + 1) / (
-                (weight2 * proba).sum(1) + (weight2 * targets).sum(1) + 1)
+        # use 1 as smooth factor for back propagation
+        score = 2. * ((intersection).sum(1) + 1) / (
+                proba.sum(1) + targets.sum(1) + 1)
         # average over batch size and compute the loss
         score = 1 - score.sum() / num
         return score

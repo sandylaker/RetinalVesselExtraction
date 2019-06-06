@@ -140,22 +140,22 @@ class TrainValidationSplit:
         return train_dataset, valid_dataset
 
 
-# if __name__ == '__main__':
-#     r = RetinaDataSet(train=True, shuffle=True, augment=True,
-#                       random_state=np.random.RandomState(
-#                           12))
-#     print(r.image_paths)
-#     print(r.target_paths)
-#     print(len(r))
-#     image, target = r[201]
-#     print(image.size(), target.size())
-#     to_PIL = transforms.ToPILImage()
-#     fig = plt.figure()
-#     fig.add_subplot(1, 2, 1)
-#     plt.imshow(to_PIL(image))
-#     fig.add_subplot(1, 2, 2)
-#     plt.imshow(to_PIL(target))
-#     plt.show()
+if __name__ == '__main__':
+    r = RetinaDataSet(train=True, shuffle=True, augment=True,
+                      random_state=np.random.RandomState(
+                          12))
+    print(r.image_paths)
+    print(r.target_paths)
+    print(len(r))
+    image, target = r[201]
+    print(image.size(), target.size())
+    to_PIL = transforms.ToPILImage()
+    fig = plt.figure()
+    fig.add_subplot(1, 2, 1)
+    plt.imshow(to_PIL(image))
+    fig.add_subplot(1, 2, 2)
+    plt.imshow(to_PIL(target))
+    plt.show()
 
     # Spliter = TrainValidationSplit(train_size=0.6)
     # train_dataset, valid_dataset = Spliter(r)
