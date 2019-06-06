@@ -89,11 +89,11 @@ class RetinaDataSet(Dataset):
         return len(self.image_paths)
 
     def _default_tranform(self, image, target=None):
-        transform = transforms.ToTensor()
+        to_tensor = transforms.ToTensor()
         if target:
-            return transform(image), transform(target)
+            return to_tensor(image), to_tensor(target)
         else:
-            return transform(image)
+            return to_tensor(image)
 
     def _shuffle_paths(
             self,
@@ -141,13 +141,14 @@ class TrainValidationSplit:
 
 
 if __name__ == '__main__':
-    r = RetinaDataSet(train=True, shuffle=True, augment=True,
+    r = RetinaDataSet(train=True, shuffle=False, augment=True,
                       random_state=np.random.RandomState(
                           12))
     print(r.image_paths)
     print(r.target_paths)
     print(len(r))
-    image, target = r[201]
+    image, target = r[-2]
+    print(torch.max(target))
     print(image.size(), target.size())
     to_PIL = transforms.ToPILImage()
     fig = plt.figure()
