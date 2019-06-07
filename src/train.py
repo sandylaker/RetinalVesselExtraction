@@ -26,21 +26,22 @@ def train(train_loader, valid_loader, resume=False, n_epochs=30, lr=0.001, weigh
                  pad_value=0)
 
     criterion = BCEWithLogitsLoss2d()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     if not resume:
         model.train()
         model.to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     else:
         check_point = torch.load('check_point')
         model.load_state_dict(check_point['model_state_dict'])
-        optimizer.load_state_dict(check_point['optimizer_state_dict'])
         model.train()
         model.to(device)
-        for state in optimizer.state.values():
-            for k, v in state.items():
-                if isinstance(v, torch.Tensor):
-                    state[k] = v.to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        optimizer.load_state_dict(check_point['optimizer_state_dict'])
+        # for state in optimizer.state.values():
+        #     for k, v in state.items():
+        #         if isinstance(v, torch.Tensor):
+        #             state[k] = v.to(device)
 
     for epoch in range(n_epochs):
         print('Epoch: {}'.format(epoch + 1))
