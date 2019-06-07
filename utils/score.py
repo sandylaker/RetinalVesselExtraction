@@ -11,7 +11,7 @@ class DiceScoreWithLogits(nn.Module):
         self.threshold = threshold
 
     def forward(self, logits, targets):
-        proba = F.sigmoid(logits)
+        proba = torch.sigmoid(logits)
         num = targets.size(0)
         predict = (proba.view(num, -1) > self.threshold).float()
         targets = targets.view(num, -1)
