@@ -9,6 +9,9 @@ import os
 def predict(model:UNet, root=None, threshold=0.5):
     """
     """
+    device = ('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model.eval()
+    model.to(device)
     if model.pad is None:
         print('UNet has no padding layer')
     else:
@@ -25,19 +28,21 @@ def predict(model:UNet, root=None, threshold=0.5):
         predict_name = str(i+1) + '.png'
         store_path = os.path.join(root, predict_name)
 
-        image, mask = test_data
+        image, mask = test_data[0].type(torch.float).to(device), test_data[1].type(torch.float).to(device)
 
         logits = model(image)
         proba = torch.sigmoid(logits)
-        predicted = (proba < threshold).type(torch.float)
+        predicted = (proba > threshold).type(torch.float)
 
         # predicted is 4d Tensor, (1, 1, H, W)
         predicted = (predicted * mask)[0]
 
         to_PIL = transforms.ToPILImage()
-        predicted = to_PIL(predicted)
+        # copy the predicted Tensor to CPU
+        predicted_copy = predicted.cpu()
+        predicted_image = to_PIL(predicted_copy)
 
-        predicted.save(store_path)
+        predicted_image.save(store_path)
         print('Predicted image {} saved'.format(i+1))
 
 
