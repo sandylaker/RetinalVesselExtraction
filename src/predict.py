@@ -6,7 +6,7 @@ from utils import *
 from src import UNet
 import os
 
-def predict(model:UNet, root=None):
+def predict(model:UNet, root=None, threshold=0.5):
     """
     """
     if model.pad is None:
@@ -29,7 +29,7 @@ def predict(model:UNet, root=None):
 
         logits = model(image)
         proba = torch.sigmoid(logits)
-        predicted = (proba > 0.5).type(torch.float)
+        predicted = (proba < threshold).type(torch.float)
 
         # predicted is 4d Tensor, (1, 1, H, W)
         predicted = (predicted * mask)[0]
@@ -44,5 +44,13 @@ def predict(model:UNet, root=None):
 
 
 if __name__ =='__main__':
-    unet = UNet(in_channels=3, padding=(117, 118, 108, 108))
-    predict(model=unet)
+    # unet = UNet(in_channels=3, padding=(117, 118, 108, 108))
+    # predict(model=unet)
+    from PIL import Image
+    img = Image.open('../data/predict/1.png')
+    img = 1 - (np.asarray(img) == 255).astype(int)
+    print(np.unique(img))
+    img = Image.fromarray((img * 255).astype(float))
+    plt.imshow(img)
+    plt.colorbar()
+    plt.show()
