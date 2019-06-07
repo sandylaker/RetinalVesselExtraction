@@ -17,7 +17,8 @@ def train(**kwargs):
     weight_decay = kwargs['weight_decay']
 
     dataset = RetinaDataSet(train=True, augment=True)
-    train_dataset, valid_dataset = TrainValidationSplit(train_size=0.8)
+    train_valid_splitter = TrainValidationSplit(train_size=0.8)
+    train_dataset, valid_dataset = train_valid_splitter(dataset)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
@@ -33,6 +34,7 @@ def train(**kwargs):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     for epoch in range(n_epochs):
+        print('Epoch: {}'.format(epoch + 1))
 
         running_loss = 0.0
         for i, data in enumerate(train_loader):
@@ -65,14 +67,12 @@ def train(**kwargs):
     # validation
     score = DiceScoreWithLogits()
     dice_score_list = []
-    total = 0
 
     with torch.no_grad():
         # set the model to evaluation mode
         model.eval()
 
         for valid_data in valid_dataset:
-            total += 1
             images, targets = valid_data[0].to(device), valid_data[1].to(device)
             output_logits = model(images)
             dice_score_list.append(score(output_logits, targets))
@@ -87,3 +87,4 @@ if __name__ == '__main__':
         'weight_decay': 0.001,
         'batch_size': 10
     }
+    train(**kwargs)
