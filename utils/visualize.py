@@ -2,7 +2,7 @@ import torch
 import torchvision.transforms as transforms
 from torchvision.utils import make_grid
 import matplotlib
-matplotlib.use('Qt5Agg')
+# matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from utils.data_loader import RetinaDataSet
 
