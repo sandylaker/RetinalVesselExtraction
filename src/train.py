@@ -32,7 +32,7 @@ def train(train_loader, valid_loader, resume=False, n_epochs=30, lr=0.001, weigh
         model.to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     else:
-        check_point = torch.load('check_point')
+        check_point = torch.load('../check_point/check_point')
         model.load_state_dict(check_point['model_state_dict'])
         model.train()
         model.to(device)
@@ -70,7 +70,7 @@ def train(train_loader, valid_loader, resume=False, n_epochs=30, lr=0.001, weigh
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss_state_dict': criterion.state_dict(),
-        }, os.path.join('./', 'check_point'))
+        }, os.path.join('../check_point/', 'check_point'))
 
     print('finish training')
 

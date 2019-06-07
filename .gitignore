@@ -1,4 +1,4 @@
 *.tar
 *.pt
 *.pth
-check_point
+check_point/
