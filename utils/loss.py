@@ -28,8 +28,8 @@ class BCEWithLogitsLoss2d(nn.Module):
         :param targets: (Tensor) - the ground truth label of each pixel
         :return: scalar. If reduction is 'none', then (N,*), same as logits input.
         """
-        logits = logits.view(-1)
-        targets = targets.view(-1)
+        logits = logits.contiguous().view(-1)
+        targets = targets.contiguous().view(-1)
         return self.loss(logits, targets)
 
 

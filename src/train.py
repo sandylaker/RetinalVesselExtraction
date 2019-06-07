@@ -6,32 +6,41 @@ from utils import *
 from src import UNet
 import os
 
-def train(**kwargs):
+def prepare_training_data(train_size=0.8, batch_size=3, random_state=None):
+    dataset = RetinaDataSet(train=True, augment=True, random_state=random_state)
+    train_valid_splitter = TrainValidationSplit(train_size)
+    train_dataset, valid_dataset = train_valid_splitter(dataset)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    return train_loader, valid_loader
 
+
+def train(train_loader, valid_loader, resume=False, n_epochs=30, lr=0.001, weight_decay=0.001):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
-
-    n_epochs = kwargs['n_epochs']
-    lr = kwargs['learning_rate']
-    batch_size = kwargs['batch_size']
-    weight_decay = kwargs['weight_decay']
-
-    dataset = RetinaDataSet(train=True, augment=True)
-    train_valid_splitter = TrainValidationSplit(train_size=0.8)
-    train_dataset, valid_dataset = train_valid_splitter(dataset)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
     model = UNet(in_channels=3,
                  n_classes=2,
                  return_logits=True,
                  padding=(117, 118, 108, 108),
                  pad_value=0)
-    model.train()
-    model.to(device)
 
     criterion = BCEWithLogitsLoss2d()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    if not resume:
+        model.train()
+        model.to(device)
+    else:
+        check_point = torch.load('check_point')
+        model.load_state_dict(check_point['model_state_dict'])
+        optimizer.load_state_dict(check_point['optimizer_state_dict'])
+        model.train()
+        model.to(device)
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(device)
 
     for epoch in range(n_epochs):
         print('Epoch: {}'.format(epoch + 1))
@@ -64,7 +73,6 @@ def train(**kwargs):
 
     print('finish training')
 
-    # validation
     score = DiceScoreWithLogits()
     dice_score_list = []
 
@@ -72,7 +80,7 @@ def train(**kwargs):
         # set the model to evaluation mode
         model.eval()
 
-        for valid_data in valid_dataset:
+        for valid_data in valid_loader:
             images, targets = valid_data[0].to(device), valid_data[1].to(device)
             output_logits = model(images)
             dice_score_list.append(score(output_logits, targets))
