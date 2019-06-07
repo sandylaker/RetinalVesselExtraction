@@ -17,9 +17,12 @@ class RetinaDataSet(Dataset):
             augment=False,
             transform=None,
             shuffle=True,
-            random_state=None):
+            random_state=None,
+            ):
         """
-        The Dataset of Retinal Vessel Extraction Challenge
+        The Dataset of Retinal Vessel Extraction Challenge.
+        In the train mode, `__getitem__` will return a tuple of (image, target),
+        in the test mode, `__getitem__` will return a tuple of (image, mask), if `test_mask` is True
 
         :param root: (str, optional) - root directory, by default '../data/'
         :param train: (bool, optional) - if True, load the training data, otherwise load the test
@@ -67,9 +70,14 @@ class RetinaDataSet(Dataset):
                     os.path.join(
                         self.root,
                         'test/images/*_test.tif')))
-            if shuffle:
-                self.image_paths = self._shuffle_paths(
-                    self.image_paths, random_state=random_state)
+            self.mask_paths = sorted(
+                glob.glob(
+                    os.path.join(
+                        self.root,
+                        'test/mask/*_test_mask.gif'
+                    )
+                )
+            )
 
         if not transform:
             self.transform = self._default_tranform
@@ -83,7 +91,8 @@ class RetinaDataSet(Dataset):
             target = Image.open(self.target_paths[index])
             return self.transform(image, target)
         else:
-            return self.transform(image)
+            mask = Image.open(self.mask_paths[index])
+            return self.transform(image), self.transform(mask)
 
     def __len__(self):
         return len(self.image_paths)
@@ -98,29 +107,29 @@ class RetinaDataSet(Dataset):
     def _shuffle_paths(
             self,
             image_paths,
-            target_paths=None,
+            target_mask_paths=None,
             random_state=None):
         """
 
         shuffle the list of paths of images (and targets)
 
         :param image_paths: list of strings, paths of images
-        :param target_paths: list of targets, paths of targets
+        :param target_mask_paths: list of strings, paths of targets (or masks)
         :param random_state: numpy.random.RandomState, specify the random state
         :return: in train mode: return a tuple of (list of image paths, list of target paths);
                  in evaluation mode: return a list of image paths
         """
         if not random_state:
             random_state = np.random.RandomState()
-        if not target_paths:
+        if not target_mask_paths:
             random_state.shuffle(image_paths)
             return image_paths
 
-        zipped = list(zip(image_paths, target_paths))
+        zipped = list(zip(image_paths, target_mask_paths))
         random_state.shuffle(zipped)
         unzipped = zip(*zipped)
-        image_paths, target_paths = unzipped
-        return list(image_paths), list(target_paths)
+        image_paths, target_mask_paths = unzipped
+        return list(image_paths), list(target_mask_paths)
 
 
 class TrainValidationSplit:
@@ -141,21 +150,21 @@ class TrainValidationSplit:
 
 
 if __name__ == '__main__':
-    r = RetinaDataSet(train=True, shuffle=False, augment=True,
+    r = RetinaDataSet(train=False, shuffle=True, augment=True,
                       random_state=np.random.RandomState(
                           12))
     print(r.image_paths)
-    print(r.target_paths)
+    print(r.mask_paths)
     print(len(r))
-    image, target = r[-2]
-    print(torch.max(target))
-    print(image.size(), target.size())
+    image, mask = r[-2]
+    print(np.unique(mask.numpy()))
+    print(image.size(), mask.size())
     to_PIL = transforms.ToPILImage()
     fig = plt.figure()
     fig.add_subplot(1, 2, 1)
     plt.imshow(to_PIL(image))
     fig.add_subplot(1, 2, 2)
-    plt.imshow(to_PIL(target))
+    plt.imshow(to_PIL(mask))
     plt.show()
 
     # Spliter = TrainValidationSplit(train_size=0.6)
