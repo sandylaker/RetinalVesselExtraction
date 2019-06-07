@@ -88,11 +88,3 @@ def train(train_loader, valid_loader, resume=False, n_epochs=30, lr=0.001, weigh
     print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
 
 
-if __name__ == '__main__':
-    kwargs = {
-        'n_epochs': 10,
-        'learning_rate': 0.01,
-        'weight_decay': 0.001,
-        'batch_size': 10
-    }
-    train(**kwargs)
