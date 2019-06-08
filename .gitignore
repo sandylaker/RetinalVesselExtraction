@@ -1,1 +1,4 @@
-src/check_point
+*.tar
+*.pt
+*.pth
+check_point/
