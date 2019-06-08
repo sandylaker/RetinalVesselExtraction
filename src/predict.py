@@ -9,7 +9,8 @@ import os
 def predict(model:UNet, root=None, threshold=0.5):
     """
     """
-    device = ('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(device)
     model.eval()
     model.to(device)
     if model.pad is None:
