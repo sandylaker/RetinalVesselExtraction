@@ -15,7 +15,14 @@ def prepare_training_data(train_size=0.8, batch_size=3, random_state=None):
     return train_loader, valid_loader
 
 
-def train(train_loader, valid_loader, resume=False, n_epochs=30, lr=0.001, weight_decay=0.001):
+def train(train_loader,
+          valid_loader,
+          resume=False,
+          n_epochs=30,
+          lr=0.001,
+          weight_decay=0.001,
+          loss='soft_dice'):
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
 
@@ -25,7 +32,12 @@ def train(train_loader, valid_loader, resume=False, n_epochs=30, lr=0.001, weigh
                  padding=(117, 118, 108, 108),
                  pad_value=0)
 
-    criterion = BCEWithLogitsLoss2d()
+    if loss == 'bce':
+        criterion = BCEWithLogitsLoss2d()
+    elif loss == 'soft_dice':
+        criterion = SoftDiceLoss()
+    else:
+        raise ValueError("loss can be either 'bce' or 'soft_dice'")
 
     if not resume:
         model.train()
