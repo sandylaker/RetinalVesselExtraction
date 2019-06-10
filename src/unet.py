@@ -73,7 +73,7 @@ class UNet(nn.Module):
 
         self.return_logits = return_logits
 
-    def forward(self, x):
+    def forward(self, x, train_mode=True):
         H, W = x.size()[-2:]
         if self.pad:
             x = self.pad(x)
@@ -120,15 +120,17 @@ class UNet(nn.Module):
                   H, left_pad_len: left_pad_len + W]
 
         if self.return_logits:
-            if self.add_out_layers:
+            if self.add_out_layers and train_mode:
                 return [x, x_2, x_4, x_8, x_16]
             else:
                 return x
         else:
-            if self.add_out_layers:
+            if self.add_out_layers and train_mode:
                 return [
                     F.softmax(x),
                     F.softmax(x_2),
                     F.softmax(x_4),
                     F.softmax(x_8),
                     F.softmax(x_16)]
+            else:
+                return F.softmax(x)

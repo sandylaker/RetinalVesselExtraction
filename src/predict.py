@@ -31,7 +31,7 @@ def predict(model:UNet, root=None, threshold=0.5):
 
         image, mask = test_data[0].type(torch.float).to(device), test_data[1].type(torch.float).to(device)
 
-        logits = model(image)
+        logits = model(image, train_mode=False)
         proba = torch.sigmoid(logits)
         predicted = (proba > threshold).type(torch.float)
 

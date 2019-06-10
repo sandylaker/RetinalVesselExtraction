@@ -72,7 +72,7 @@ def train(train_loader,
                 loss_4 = torch.tensor(0.0).type_as(loss_1)
                 loss_8 = torch.tensor(0.0).type_as(loss_1)
                 loss_16 = torch.tensor(0.0).type_as(loss_1)
-                optimizer.step()
+                loss_1.backward()
             else:
                 # pad the targets and down sampling, in oder to align them with low-res outputs
                 targets_padded = F.pad(targets, list(padding), mode='constant', value=0)
@@ -83,15 +83,14 @@ def train(train_loader,
                 targets_16 = F.max_pool2d(targets_8, kernel_size=2, stride=2)
                 
                 loss_16 = criterion_16(output_logits[4], targets_16)
-                optimizer.step()
                 loss_8 = criterion_8(output_logits[3], targets_8)
-                optimizer.step()
                 loss_4 = criterion_4(output_logits[2], targets_4)
-                optimizer.step()
                 loss_2 = criterion_2(output_logits[1], targets_2)
-                optimizer.step()
                 loss_1 = criterion(output_logits[0], targets)
-                optimizer.step()
+                losses = sum([loss_16, loss_8, loss_4, loss_2, loss_1])
+                losses.backward()
+                
+            optimizer.step()
 
             # print statistics
             running_loss += loss_1.item()
@@ -119,7 +118,7 @@ def train(train_loader,
 
         for valid_data in valid_loader:
             images, targets = valid_data[0].to(device), valid_data[1].to(device)
-            output_logits = model(images)
+            output_logits = model(images, train_mode=False)
             dice_score_list.append(score(output_logits, targets))
 
     print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
