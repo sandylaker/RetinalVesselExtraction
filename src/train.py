@@ -38,10 +38,10 @@ def train(train_loader,
     criterion =_generate_loss(loss_type)
     # add loss for low-res outputs at /2, /4, /8, /16
     if add_out_layers:
-        criterion_2 = _generate_loss(loss_type)
-        criterion_4 = _generate_loss(loss_type)
-        criterion_8 = _generate_loss(loss_type)
-        criterion_16 = _generate_loss(loss_type)
+        criterion_2 = _generate_loss('bce')
+        criterion_4 = _generate_loss('bce')
+        criterion_8 = _generate_loss('bce')
+        criterion_16 = _generate_loss('bce')
 
     if not resume:
         model.train()
