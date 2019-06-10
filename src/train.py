@@ -21,23 +21,27 @@ def train(train_loader,
           n_epochs=30,
           lr=0.001,
           weight_decay=0.001,
-          loss='soft_dice'):
+          loss_type='soft_dice',
+          add_out_layers=False):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
 
+    padding = (117, 118, 108, 108)
     model = UNet(in_channels=3,
                  n_classes=2,
                  return_logits=True,
-                 padding=(117, 118, 108, 108),
-                 pad_value=0)
+                 padding=padding,
+                 pad_value=0,
+                 add_out_layers=add_out_layers)
 
-    if loss == 'bce':
-        criterion = BCEWithLogitsLoss2d()
-    elif loss == 'soft_dice':
-        criterion = SoftDiceLoss()
-    else:
-        raise ValueError("loss can be either 'bce' or 'soft_dice'")
+    criterion =_generate_loss(loss_type)
+    # add loss for low-res outputs at /2, /4, /8, /16
+    if add_out_layers:
+        criterion_2 = _generate_loss(loss_type)
+        criterion_4 = _generate_loss(loss_type)
+        criterion_8 = _generate_loss(loss_type)
+        criterion_16 = _generate_loss(loss_type)
 
     if not resume:
         model.train()
@@ -50,10 +54,6 @@ def train(train_loader,
         model.to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         optimizer.load_state_dict(check_point['optimizer_state_dict'])
-        # for state in optimizer.state.values():
-        #     for k, v in state.items():
-        #         if isinstance(v, torch.Tensor):
-        #             state[k] = v.to(device)
 
     for epoch in range(n_epochs):
         print('Epoch: {}'.format(epoch + 1))
@@ -65,12 +65,32 @@ def train(train_loader,
             optimizer.zero_grad()
 
             output_logits = model(images)
-            loss = criterion(output_logits, targets)
-            loss.backward()
+            if not add_out_layers:
+                # in this case, the output_logits will be a Tensor
+                loss_1 = criterion(output_logits, targets)
+                loss_2 = torch.tensor(0.0).type_as(loss_1)
+                loss_4 = torch.tensor(0.0).type_as(loss_1)
+                loss_8 = torch.tensor(0.0).type_as(loss_1)
+                loss_16 = torch.tensor(0.0).type_as(loss_1)
+            else:
+                # pad the targets and down sampling, in oder to align them with low-res outputs
+                targets_padded = F.pad(targets, list(padding), mode='constant', value=0)
+                # down sample to resolution /2
+                targets_2 = F.max_pool2d(targets_padded, kernel_size=2, stride=2)
+                targets_4 = F.max_pool2d(targets_2, kernel_size=2, stride=2)
+                targets_8 = F.max_pool2d(targets_4, kernel_size=2, stride=2)
+                targets_16 = F.max_pool2d(targets_8, kernel_size=2, stride=2)
+
+                loss_1 = criterion(output_logits[0], targets)
+                loss_2 = criterion_2(output_logits[1], targets_2)
+                loss_4 = criterion_4(output_logits[2], targets_4)
+                loss_8 = criterion_8(output_logits[3], targets_8)
+                loss_16 = criterion_16(output_logits[4], targets_16)
+
             optimizer.step()
 
             # print statistics
-            running_loss += loss.item()
+            running_loss += _accumulate_losses(*(loss_1, loss_2, loss_4, loss_8, loss_16))
             # print every 5 mini-batches
             if (i+1) % 5 == 0:
                 print('[%d, %d] loss: %f' % (epoch + 1, i + 1, running_loss/5))
@@ -81,11 +101,11 @@ def train(train_loader,
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'loss_state_dict': criterion.state_dict(),
         }, os.path.join('../check_point/', 'check_point'))
 
     print('finish training')
 
+    # test on validation set
     score = DiceScoreWithLogits()
     dice_score_list = []
 
@@ -101,3 +121,18 @@ def train(train_loader,
     print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
 
 
+def _generate_loss(loss_type, **kwargs):
+    if loss_type == 'bce':
+        criterion = BCEWithLogitsLoss2d(**kwargs)
+    elif loss_type == 'soft_dice':
+        criterion = SoftDiceLoss(**kwargs)
+    else:
+        raise ValueError("loss type can be either 'bce' or 'soft_dice'")
+
+    return criterion
+
+def _accumulate_losses(*args):
+    accum = 0.0
+    for l in args:
+        accum += l.item()
+    return accum
