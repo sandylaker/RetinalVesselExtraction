@@ -133,6 +133,7 @@ class RetinaDataSet(Dataset):
 
 
 class TrainValidationSplit:
+    # TODO: to be extended to K-Folds split
 
     def __init__(self, train_size=0.6):
         if train_size >= 1.0 or train_size <= 0:
