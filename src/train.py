@@ -72,6 +72,7 @@ def train(train_loader,
                 loss_4 = torch.tensor(0.0).type_as(loss_1)
                 loss_8 = torch.tensor(0.0).type_as(loss_1)
                 loss_16 = torch.tensor(0.0).type_as(loss_1)
+                optimizer.step()
             else:
                 # pad the targets and down sampling, in oder to align them with low-res outputs
                 targets_padded = F.pad(targets, list(padding), mode='constant', value=0)
@@ -80,17 +81,20 @@ def train(train_loader,
                 targets_4 = F.max_pool2d(targets_2, kernel_size=2, stride=2)
                 targets_8 = F.max_pool2d(targets_4, kernel_size=2, stride=2)
                 targets_16 = F.max_pool2d(targets_8, kernel_size=2, stride=2)
-
-                loss_1 = criterion(output_logits[0], targets)
-                loss_2 = criterion_2(output_logits[1], targets_2)
-                loss_4 = criterion_4(output_logits[2], targets_4)
-                loss_8 = criterion_8(output_logits[3], targets_8)
+                
                 loss_16 = criterion_16(output_logits[4], targets_16)
-
-            optimizer.step()
+                optimizer.step()
+                loss_8 = criterion_8(output_logits[3], targets_8)
+                optimizer.step()
+                loss_4 = criterion_4(output_logits[2], targets_4)
+                optimizer.step()
+                loss_2 = criterion_2(output_logits[1], targets_2)
+                optimizer.step()
+                loss_1 = criterion(output_logits[0], targets)
+                optimizer.step()
 
             # print statistics
-            running_loss += _accumulate_losses(*(loss_1, loss_2, loss_4, loss_8, loss_16))
+            running_loss += loss_1.item()
             # print every 5 mini-batches
             if (i+1) % 5 == 0:
                 print('[%d, %d] loss: %f' % (epoch + 1, i + 1, running_loss/5))
@@ -131,8 +135,8 @@ def _generate_loss(loss_type, **kwargs):
 
     return criterion
 
-def _accumulate_losses(*args):
-    accum = 0.0
-    for l in args:
-        accum += l.item()
-    return accum
+# def _accumulate_losses(*args):
+#     accum = 0.0
+#     for l in args:
+#         accum += l.item()
+#     return accum
