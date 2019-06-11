@@ -14,6 +14,7 @@ class BCEWithLogitsLoss2d(nn.Module):
         :param pos_weight: see docs of nn.BCEWithLogitsLoss on pytorch website
         """
         super(BCEWithLogitsLoss2d, self).__init__()
+        # TODO substitute weight for each batch with weight_map for each input image
         if weight is None:
             self.weight = None
         else:

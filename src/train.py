@@ -11,7 +11,7 @@ def prepare_training_data(train_size=0.8, batch_size=3, random_state=None):
     train_valid_splitter = TrainValidationSplit(train_size)
     train_dataset, valid_dataset = train_valid_splitter(dataset)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=4)
     return train_loader, valid_loader
 
 
@@ -55,9 +55,14 @@ def train(train_loader,
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         optimizer.load_state_dict(check_point['optimizer_state_dict'])
 
+    # decay coefficients (weights) of low-res losses /16, /8, /4, /2
+    coefs = [0.5 ** k for k in range(3, -1, -1)]
+    
     for epoch in range(n_epochs):
         print('Epoch: {}'.format(epoch + 1))
-
+        
+        coefs = [0.5 * coef for coef in coefs]
+        
         running_loss = 0.0
         for i, data in enumerate(train_loader):
             images, targets = data[0].to(device), data[1].to(device)
@@ -82,12 +87,17 @@ def train(train_loader,
                 targets_8 = F.max_pool2d(targets_4, kernel_size=2, stride=2)
                 targets_16 = F.max_pool2d(targets_8, kernel_size=2, stride=2)
                 
+                
                 loss_16 = criterion_16(output_logits[4], targets_16)
                 loss_8 = criterion_8(output_logits[3], targets_8)
                 loss_4 = criterion_4(output_logits[2], targets_4)
                 loss_2 = criterion_2(output_logits[1], targets_2)
                 loss_1 = criterion(output_logits[0], targets)
-                losses = sum([loss_16, loss_8, loss_4, loss_2, loss_1])
+                losses = sum([coefs[0] * loss_16, 
+                              coefs[1] * loss_8, 
+                              coefs[2] * loss_4, 
+                              coefs[3] * loss_2, 
+                              loss_1])
                 losses.backward()
                 
             optimizer.step()
@@ -116,14 +126,14 @@ def train(train_loader,
         # set the model to evaluation mode
         model.eval()
 
-        for valid_data in valid_loader:
+        for i, valid_data in enumerate(valid_loader):
             images, targets = valid_data[0].to(device), valid_data[1].to(device)
             output_logits = model(images, train_mode=False)
             dice_score_list.append(score(output_logits, targets))
-
+            
     print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
 
-
+                        
 def _generate_loss(loss_type, **kwargs):
     if loss_type == 'bce':
         criterion = BCEWithLogitsLoss2d(**kwargs)
