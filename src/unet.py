@@ -63,13 +63,13 @@ class UNet(nn.Module):
         if self.add_out_layers:
             # output layers at low-res /2, /4, /8 and /16
             self.conv_out_2 = nn.Conv2d(
-                128, out_channels, kernel_size=3, padding=1)
+                128, out_channels, kernel_size=1, padding=0)
             self.conv_out_4 = nn.Conv2d(
-                256, out_channels, kernel_size=3, padding=1)
+                256, out_channels, kernel_size=1, padding=0)
             self.conv_out_8 = nn.Conv2d(
-                512, out_channels, kernel_size=3, padding=1)
+                512, out_channels, kernel_size=1, padding=0)
             self.conv_out_16 = nn.Conv2d(
-                1024, out_channels, kernel_size=3, padding=1)
+                1024, out_channels, kernel_size=1, padding=0)
 
         self.return_logits = return_logits
 
