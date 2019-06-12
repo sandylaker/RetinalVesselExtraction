@@ -23,7 +23,7 @@ def train(train_loader,
           weight_decay=0.001,
           loss_type='soft_dice',
           add_out_layers=False,
-          weight_map=True):
+          weight_map=False):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -69,7 +69,7 @@ def train(train_loader,
             images, targets = data[0].to(device), data[1].to(device)
 
             if weight_map:
-                weights = canny_weight_map(targets, factor=3).to(device)
+                weights = canny_weight_map(targets, factor=0.5).to(device)
             else:
                 weights = None
 

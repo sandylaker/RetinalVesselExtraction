@@ -6,7 +6,7 @@ from utils import *
 from src import UNet
 import os
 
-def predict(model:UNet, root=None, threshold=0.5, valid_loader=None):
+def predict(model:UNet, root=None, threshold=0.5):
     """
     """
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -45,29 +45,6 @@ def predict(model:UNet, root=None, threshold=0.5, valid_loader=None):
 
         predicted_image.save(store_path)
         print('Predicted image {} saved'.format(i+1))
-        
-    # predict on validation set and save the false negative part along with the ground truths
-    for i, valid_data in enumerate(valid_loader):
-        fn_name = str(i+1) + '_fn.png'
-        fn_path = os.path.join('../data/false_negative/', fn_name)
-        tg_path = os.path.join('../data/false_negative/', '{}_target.png'.format(i+1))
-        
-        image, target = valid_data[0].type(torch.float).to(device), valid_data[1].type(torch.float).to(device)
-        
-        logits = model(image, train_mode=False)
-        proba = torch.sigmoid(logits)
-        predicted = (proba > threshold).type(torch.float)
-        false_negative = (target - predicted * target)[0]
-        to_PIL = transforms.ToPILImage()
-        fn = false_negative.cpu()
-        fn = to_PIL(fn)
-        fn.save(fn_path)
-        print('False negative image {} saved'.format(i+1))
-        
-        tg = target[0].cpu()
-        tg = to_PIL(tg)
-        tg.save(tg_path)
-        print('Target image {} of valid data saved'.format(i+1))
 
 
 if __name__ =='__main__':
