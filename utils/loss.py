@@ -31,8 +31,9 @@ class BCEWithLogitsLoss2d(nn.Module):
 
 class SoftDiceLoss(nn.Module):
 
-    def __init__(self):
+    def __init__(self, smooth_factor=1):
         super(SoftDiceLoss, self).__init__()
+        self.smooth_factor = smooth_factor
 
     def forward(self, logits, targets, weights=None):
         proba = torch.sigmoid(logits)
@@ -41,15 +42,14 @@ class SoftDiceLoss(nn.Module):
             weights = torch.ones_like(targets)
         else:
             weights = weights
-        targets = weights * targets
-        proba = weights * proba
+        weights = weights.view(num, -1)
         proba = proba.view(num, -1)
         targets = targets.view(num, -1)
 
         intersection = proba * targets
         # use 1 as smooth factor for back propagation
-        score = 2. * (intersection.sum(1) + 1) / (
-                proba.sum(1) + targets.sum(1) + 1)
+        score = 2. * ((weights * intersection).sum(1) + self.smooth_factor) / (
+            (weights * proba).sum(1) + (weights * targets).sum(1) + self.smooth_factor)
         # average over batch size and compute the loss
         score = 1 - score.sum() / num
         return score
