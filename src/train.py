@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from utils import *
-from src import UNet
+from src import UNet, UNetPlusPlus
 import os
 
 def prepare_training_data(train_size=0.8, batch_size=3, random_state=None):
@@ -15,15 +15,15 @@ def prepare_training_data(train_size=0.8, batch_size=3, random_state=None):
     return train_loader, valid_loader
 
 
-def train(train_loader,
-          valid_loader,
-          resume=False,
-          n_epochs=30,
-          lr=0.001,
-          weight_decay=0.001,
-          loss_type='soft_dice',
-          add_out_layers=False,
-          weight_map=False):
+def train_unet(train_loader,
+               valid_loader,
+               resume=False,
+               n_epochs=30,
+               lr=0.001,
+               weight_decay=0.001,
+               loss_type='soft_dice',
+               add_out_layers=False,
+               weight_map=False):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -138,7 +138,98 @@ def train(train_loader,
             
     print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
 
-                        
+
+def train_unet_plusplus(train_loader,
+                        valid_loader,
+                        resume=False,
+                        n_epochs=30,
+                        lr=0.001,
+                        weight_decay=0.001,
+                        loss_type='soft_dice',
+          ):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
+
+    padding = (117, 118, 108, 108)
+    model = UNetPlusPlus(in_channels=3,
+                         n_classes=2,
+                         return_logits=True,
+                         padding=padding,
+                         pad_value=0)
+
+    criterion0_4 = _generate_loss(loss_type)
+    criterion0_3 = _generate_loss(loss_type)
+    criterion0_2 = _generate_loss(loss_type)
+    criterion0_1 = _generate_loss(loss_type)
+
+    if not resume:
+        model.train()
+        model.to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    else:
+        check_point = torch.load('../check_point/check_point')
+        model.load_state_dict(check_point['model_state_dict'])
+        model.train()
+        model.to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        optimizer.load_state_dict(check_point['optimizer_state_dict'])
+
+    for epoch in range(n_epochs):
+        print('Epoch: {}'.format(epoch + 1))
+
+        running_loss = 0.0
+        for i, data in enumerate(train_loader):
+            images, targets = data[0].to(device), data[1].to(device)
+
+
+
+            optimizer.zero_grad()
+
+            # output is a list [output0_1, output0_2, output0_3, output0_4]
+            output_logits = model(images)
+
+            loss0_1 = criterion0_1(output_logits[0], targets)
+            loss0_2 = criterion0_2(output_logits[1], targets)
+            loss0_3 = criterion0_3(output_logits[2], targets)
+            loss0_4 = criterion0_4(output_logits[3], targets)
+            losses = sum([loss0_1, loss0_2, loss0_3, loss0_4])
+
+            losses.backward()
+
+            optimizer.step()
+
+            # print statistics
+            running_loss += losses.item()
+            # print every 5 mini-batches
+            if (i + 1) % 5 == 0:
+                print('[%d, %d] loss: %f' % (epoch + 1, i + 1, running_loss / 5))
+                running_loss = 0
+
+        # save state every epochs
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+        }, os.path.join('../check_point/', 'check_point'))
+
+    print('finish training')
+
+    # test on validation set
+    score = DiceScoreWithLogits()
+    dice_score_list = []
+
+    with torch.no_grad():
+        # set the model to evaluation mode
+        model.eval()
+
+        for i, valid_data in enumerate(valid_loader):
+            images, targets = valid_data[0].to(device), valid_data[1].to(device)
+            output_logits = model(images, train_mode=False, prune_level=4)
+            dice_score_list.append(score(output_logits, targets))
+
+    print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
+
+
 def _generate_loss(loss_type, **kwargs):
     if loss_type == 'bce':
         criterion = BCEWithLogitsLoss2d(**kwargs)
@@ -148,9 +239,3 @@ def _generate_loss(loss_type, **kwargs):
         raise ValueError("loss type can be either 'bce' or 'soft_dice'")
 
     return criterion
-
-# def _accumulate_losses(*args):
-#     accum = 0.0
-#     for l in args:
-#         accum += l.item()
-#     return accum
