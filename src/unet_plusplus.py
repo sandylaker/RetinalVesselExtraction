@@ -21,45 +21,33 @@ class UNetPlusPlus(nn.Module):
         else:
             self.pad = None
         self.return_logits = return_logits
-        # since the up-layers in the UNet have more than 2 inputs, so the UpLayer in the naive UNet
-        # can not be directly applied here.
-        # self.up1_0 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        # self.up1_1 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        # self.up1_2 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        # self.up1_3 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        # self.up2_0 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        # self.up2_1 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        # self.up2_2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        # self.up3_0 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        # self.up3_1 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        # self.up4_0 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
 
-        self.conv0_0 = TwoLayerConv(in_channels, 64)
-        self.down1_0 = DownLayer(64, 128)
-        self.down2_0 = DownLayer(128, 256)
-        self.down3_0 = DownLayer(256, 512)
-        self.down4_0 = DownLayer(512, 1024)
+        self.conv0_0 = TwoLayerConv(in_channels, 32)
+        self.down1_0 = DownLayer(32, 64)
+        self.down2_0 = DownLayer(64, 128)
+        self.down3_0 = DownLayer(128, 256)
+        self.down4_0 = DownLayer(256, 512)
 
-        self.up0_1 = UpLayerPlusPlus(128, 64, 2)
-        self.up1_1 = UpLayerPlusPlus(256, 128, 2)
-        self.up2_1 = UpLayerPlusPlus(512, 256, 2)
-        self.up3_1 = UpLayerPlusPlus(1024, 512, 2)
-        self.up0_2 = UpLayerPlusPlus(128, 64, 3)
-        self.up1_2 = UpLayerPlusPlus(256, 128, 3)
-        self.up2_2 = UpLayerPlusPlus(512, 256, 3)
-        self.up0_3 = UpLayerPlusPlus(128, 64, 4)
-        self.up1_3 = UpLayerPlusPlus(256, 128, 4)
-        self.up0_4 = UpLayerPlusPlus(128, 64, 5)
+        self.up0_1 = UpLayerPlusPlus(64, 32, 2)
+        self.up1_1 = UpLayerPlusPlus(128, 64, 2)
+        self.up2_1 = UpLayerPlusPlus(256, 128, 2)
+        self.up3_1 = UpLayerPlusPlus(512, 256, 2)
+        self.up0_2 = UpLayerPlusPlus(64, 32, 3)
+        self.up1_2 = UpLayerPlusPlus(128, 64, 3)
+        self.up2_2 = UpLayerPlusPlus(256, 128, 3)
+        self.up0_3 = UpLayerPlusPlus(64, 32, 4)
+        self.up1_3 = UpLayerPlusPlus(128, 64, 4)
+        self.up0_4 = UpLayerPlusPlus(64, 32, 5)
 
         if self.n_classes > 2:
             out_channels = self.n_classes
         else:
             # if binary classification, output only one classification map
             out_channels = self.n_classes - 1
-        self.conv_out0_4 = OutLayer(64, out_channels)
-        self.conv_out0_3 = OutLayer(64, out_channels)
-        self.conv_out0_2 = OutLayer(64, out_channels)
-        self.conv_out0_1 = OutLayer(64, out_channels)
+        self.conv_out0_4 = OutLayer(32, out_channels)
+        self.conv_out0_3 = OutLayer(32, out_channels)
+        self.conv_out0_2 = OutLayer(32, out_channels)
+        self.conv_out0_1 = OutLayer(32, out_channels)
 
     def forward(self, x: Tensor, train_mode=True, prune_level=4):
         """
