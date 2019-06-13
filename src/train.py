@@ -132,7 +132,7 @@ def train_unet_plusplus(train_loader,
                         n_epochs=30,
                         lr=0.001,
                         weight_decay=0.001,
-                        loss_type='soft_dice',
+                        loss_type='combined',
           ):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -233,7 +233,9 @@ def _generate_loss(loss_type, **kwargs):
         criterion = BCEWithLogitsLoss2d(**kwargs)
     elif loss_type == 'soft_dice':
         criterion = SoftDiceLoss(**kwargs)
+    elif loss_type == 'combined':
+        criterion = CombinedLoss(**kwargs)
     else:
-        raise ValueError("loss type can be either 'bce' or 'soft_dice'")
+        raise ValueError("loss type can be 'bce' or 'soft_dice or 'combined'")
 
     return criterion
