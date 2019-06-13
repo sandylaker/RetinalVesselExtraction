@@ -55,6 +55,20 @@ class UpLayer(nn.Module):
         return x
 
 
+class UpLayerPlusPlus(nn.Module):
+    def __init__(self, in_channels, out_channels, n_concat):
+        super(UpLayerPlusPlus, self).__init__()
+        self.up_layer = nn.ConvTranspose2d(in_channels, in_channels//2, 2, stride=2)
+        self.conv = TwoLayerConv(n_concat * in_channels//2,  out_channels)
+
+    def forward(self, x, *x_others):
+        x_list = list(*x_others)
+        x = self.up_layer(x)
+        x_list.append(x)
+        x = torch.cat(x_list, dim=1)
+        x = self.conv(x)
+        return x
+
 class OutLayer(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutLayer, self).__init__()

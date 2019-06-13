@@ -76,7 +76,7 @@ if __name__ == '__main__':
             '../data/training/1st_manual',
             '{}_manual1.gif'.format(23)))
     b = torch.tensor(b[np.newaxis, np.newaxis, :, :])
-    b_edt = edt_weight_map(b, 5).numpy()
+    b_edt = edt_weight_map(b, 2).numpy()
 
     plt.imshow(b_edt[0, 0], cmap='RdBu')
     plt.colorbar()
