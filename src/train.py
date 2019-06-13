@@ -69,7 +69,7 @@ def train(train_loader,
             images, targets = data[0].to(device), data[1].to(device)
 
             if weight_map:
-                weights = canny_weight_map(targets, factor=0.5).to(device)
+                weights = edt_weight_map(targets, sigma=5).to(device)
             else:
                 weights = None
 
