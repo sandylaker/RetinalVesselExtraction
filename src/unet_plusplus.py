@@ -34,7 +34,7 @@ class UNetPlusPlus(nn.Module):
         # self.up3_1 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
         # self.up4_0 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
 
-        self.conv0_0 = TwoLayerConv(3, 64)
+        self.conv0_0 = TwoLayerConv(in_channels, 64)
         self.down1_0 = DownLayer(64, 128)
         self.down2_0 = DownLayer(128, 256)
         self.down3_0 = DownLayer(256, 512)

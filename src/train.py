@@ -3,7 +3,8 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from utils import *
-from src import UNet, UNetPlusPlus
+from src.unet import UNet
+from src.unet_plusplus import UNetPlusPlus
 import os
 
 def prepare_training_data(train_size=0.8, batch_size=3, random_state=None):
@@ -122,21 +123,7 @@ def train_unet(train_loader,
         }, os.path.join('../check_point/', 'check_point'))
 
     print('finish training')
-
-    # test on validation set
-    score = DiceScoreWithLogits()
-    dice_score_list = []
-
-    with torch.no_grad():
-        # set the model to evaluation mode
-        model.eval()
-
-        for i, valid_data in enumerate(valid_loader):
-            images, targets = valid_data[0].to(device), valid_data[1].to(device)
-            output_logits = model(images, train_mode=False)
-            dice_score_list.append(score(output_logits, targets))
-            
-    print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
+    validate(model, valid_loader)
 
 
 def train_unet_plusplus(train_loader,
@@ -213,7 +200,13 @@ def train_unet_plusplus(train_loader,
         }, os.path.join('../check_point/', 'check_point'))
 
     print('finish training')
-
+    validate(model, valid_loader, prune_level=4)
+    
+def validate(model, valid_loader, prune_level=4):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
+    model.to(device)
+    
     # test on validation set
     score = DiceScoreWithLogits()
     dice_score_list = []
@@ -224,7 +217,12 @@ def train_unet_plusplus(train_loader,
 
         for i, valid_data in enumerate(valid_loader):
             images, targets = valid_data[0].to(device), valid_data[1].to(device)
-            output_logits = model(images, train_mode=False, prune_level=4)
+            if isinstance(model, UNetPlusPlus):
+                output_logits = model(images, train_mode=False, prune_level=prune_level)
+            elif isinstance(model, UNet):
+                output_logits = model(images, train_mode=False)
+            else:
+                raise ValueError('Invalid Model')
             dice_score_list.append(score(output_logits, targets))
 
     print('Mean Dice Score: %f' % torch.tensor(dice_score_list, dtype=torch.float32).mean().item())
