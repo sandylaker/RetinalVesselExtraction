@@ -151,14 +151,13 @@ class TrainValidationSplit:
 
 
 if __name__ == '__main__':
-    r = RetinaDataSet(train=False, shuffle=True, augment=True,
+    r = RetinaDataSet(train=True, shuffle=True, augment=True,
                       random_state=np.random.RandomState(
                           12))
     print(r.image_paths)
-    print(r.mask_paths)
+    print(r.target_paths)
     print(len(r))
     image, mask = r[-2]
-    print(np.unique(mask.numpy()))
     print(image.size(), mask.size())
     to_PIL = transforms.ToPILImage()
     fig = plt.figure()

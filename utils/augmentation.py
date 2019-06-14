@@ -62,7 +62,7 @@ class DataAugmentation:
                 image_trans, target_trans = self._elastic_transform(image, target, mask)
 
                 # if the image has prefix 21, the the augmented images will be named with
-                # prefix 2101 - 2110 if n_augmentation equals 10
+                # prefix 2101 - 2110, given n_augmentation equals 10
                 prefix_scale = 10 ** len(str(n_augmentation))
                 image_name = '{}_training.tif'.format((i+21) * prefix_scale +
                                                              j + 1)
@@ -122,7 +122,7 @@ class DataAugmentation:
 
 
 data_augmentation = DataAugmentation(alpha=3000, sigma=30, spline_order=3)
-data_augmentation(n_augmentation=10)
+data_augmentation(n_augmentation=20)
 
 
 # if __name__ == '__main__':
