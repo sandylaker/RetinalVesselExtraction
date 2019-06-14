@@ -173,14 +173,14 @@ def train_unet_plusplus(train_loader,
             optimizer.zero_grad()
 
             # output is a list [output0_1, output0_2, output0_3, output0_4]
-            output_logits = model(images)
+            output_logits = model(images, train_mode=True)
 
             loss0_1 = criterion0_1(output_logits[0], targets)
             loss0_2 = criterion0_2(output_logits[1], targets)
             loss0_3 = criterion0_3(output_logits[2], targets)
             loss0_4 = criterion0_4(output_logits[3], targets)
             losses = sum([loss0_1, loss0_2, loss0_3, loss0_4])
-
+            # losses = criterion0_4(output_logits, targets)
             losses.backward()
 
             optimizer.step()
@@ -198,9 +198,9 @@ def train_unet_plusplus(train_loader,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
         }, os.path.join('../check_point/', 'check_point'))
-
-    print('finish training')
+        
     validate(model, valid_loader, prune_level=4)
+    print('finish training')
     
 def validate(model, valid_loader, prune_level=4):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
