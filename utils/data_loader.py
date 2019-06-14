@@ -151,7 +151,7 @@ class TrainValidationSplit:
 
 
 if __name__ == '__main__':
-    r = RetinaDataSet(train=True, shuffle=True, augment=True,
+    r = RetinaDataSet(train=True, shuffle=False, augment=True,
                       random_state=np.random.RandomState(
                           12))
     print(r.image_paths)
