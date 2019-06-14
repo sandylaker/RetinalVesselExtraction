@@ -24,7 +24,7 @@ def train_unet(train_loader,
                weight_decay=0.001,
                loss_type='soft_dice',
                add_out_layers=False,
-               weight_map=False):
+               ):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -69,17 +69,12 @@ def train_unet(train_loader,
         for i, data in enumerate(train_loader):
             images, targets = data[0].to(device), data[1].to(device)
 
-            if weight_map:
-                weights = edt_weight_map(targets, sigma=5).to(device)
-            else:
-                weights = None
-
             optimizer.zero_grad()
 
             output_logits = model(images)
             if not add_out_layers:
                 # in this case, the output_logits will be a Tensor
-                loss_1 = criterion(output_logits, targets, weights)
+                loss_1 = criterion(output_logits, targets)
                 loss_2 = torch.tensor(0.0).type_as(loss_1)
                 loss_4 = torch.tensor(0.0).type_as(loss_1)
                 loss_8 = torch.tensor(0.0).type_as(loss_1)
@@ -94,10 +89,10 @@ def train_unet(train_loader,
                 targets_8 = F.max_pool2d(targets_4, kernel_size=2, stride=2)
                 targets_16 = F.max_pool2d(targets_8, kernel_size=2, stride=2)
                 
-                loss_16 = criterion_16(output_logits[4], targets_16, weights)
-                loss_8 = criterion_8(output_logits[3], targets_8, weights)
-                loss_4 = criterion_4(output_logits[2], targets_4, weights)
-                loss_2 = criterion_2(output_logits[1], targets_2, weights)
+                loss_16 = criterion_16(output_logits[4], targets_16)
+                loss_8 = criterion_8(output_logits[3], targets_8)
+                loss_4 = criterion_4(output_logits[2], targets_4)
+                loss_2 = criterion_2(output_logits[1], targets_2)
                 loss_1 = criterion(output_logits[0], targets)
                 losses = sum([coefs[0] * loss_16, 
                               coefs[1] * loss_8, 
