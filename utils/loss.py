@@ -42,7 +42,7 @@ class SoftDiceLoss(nn.Module):
 
         intersection = proba * targets
         # use 1 as smooth factor for back propagation
-        score = 2. * (intersection.sum(1) + self.smooth_factor) / (
+        score = (2.0 * intersection.sum(1) + self.smooth_factor) / (
             proba.sum(1) + targets.sum(1) + self.smooth_factor)
         # average over batch size and compute the loss
         score = 1 - score.sum() / num
